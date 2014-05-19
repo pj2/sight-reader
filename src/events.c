@@ -9,7 +9,7 @@ Author: Joshua Prendergast */
 #define STAVE_C_Y 162
 #define STAVE_SPACING_Y 12
 #define STAVE_NOTE_X 125
-#define STAVE_GAP_WIDTH 21
+#define STAVE_GAP_Y 21
 #define STAVE_LEDGER_LEN 35
 
 gboolean expose_event_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data) {
@@ -17,22 +17,30 @@ gboolean expose_event_callback(GtkWidget *widget, GdkEventExpose *event, gpointe
     GdkGC *gc = widget->style->fg_gc[gtk_widget_get_state(widget)];
 
     int treble = g->clef == CLEF_TREBLE;
-    int real_pos = treble ? g->note : g->note - 2;
+    int render_pos = treble ? g->note : g->note - 2; /* The line to draw the note on */
+    GdkPixbuf *buf = treble ? g->main_window.treble : g->main_window.bass; /* The stave image; treble or bass */
+    int origin_y = event->area.height / 2 - gdk_pixbuf_get_height(buf) / 2; /* Used for centering - apply to all drawing operations */
 
-    /* Draw the stave */
-    gdk_pixbuf_render_to_drawable(
-        treble ? g->main_window.treble : g->main_window.bass,
+    /* Draw a white background */
+    gdk_gc_set_rgb_fg_color(gc, &g->main_window.white);
+    gdk_draw_rectangle(
         GDK_DRAWABLE(widget->window),
         gc,
-        0,
-        0,
-        0,
-        0,
-        250,
-        200,
-        GDK_RGB_DITHER_MAX,
-        0,
-        0);
+        TRUE,
+        event->area.x,
+        event->area.y,
+        event->area.width,
+        event->area.height);
+
+    /* Draw the stave, centered vertically */
+    gdk_pixbuf_render_to_drawable(
+        buf,
+        GDK_DRAWABLE(widget->window),
+        gc,
+        0, 0,
+        event->area.x, origin_y,
+        -1, -1,
+        GDK_RGB_DITHER_MAX, 0, 0);
 
     /* Draw the current note in red */
     gdk_gc_set_rgb_fg_color(gc, &g->main_window.red);
@@ -40,16 +48,13 @@ gboolean expose_event_callback(GtkWidget *widget, GdkEventExpose *event, gpointe
         widget->window,
         gc,
         TRUE,
-        STAVE_NOTE_X,
-        STAVE_C_Y - real_pos * STAVE_SPACING_Y,
-        STAVE_GAP_WIDTH,
-        STAVE_GAP_WIDTH,
-        0,
-        360 * 64);
+        STAVE_NOTE_X, origin_y + STAVE_C_Y - render_pos * STAVE_SPACING_Y,
+        STAVE_GAP_Y, STAVE_GAP_Y,
+        0, 360 * 64);
 
     /* Draw ledger lines */
-    int below = real_pos <= 0;
-    int above = real_pos >= 12;
+    int below = render_pos <= 0;
+    int above = render_pos >= 12;
 
     if (below || above) {
         /* Calculate the amount of ledger lines to draw, and the direction to draw them in. */
@@ -66,8 +71,7 @@ gboolean expose_event_callback(GtkWidget *widget, GdkEventExpose *event, gpointe
                 GDK_DRAWABLE(widget->window),
                 gc,
                 TRUE,
-                STAVE_NOTE_X + STAVE_GAP_WIDTH / 2 - STAVE_LEDGER_LEN / 2,
-                STAVE_C_Y - cur * STAVE_SPACING_Y + (STAVE_GAP_WIDTH / 2),
+                STAVE_NOTE_X + STAVE_GAP_Y / 2 - STAVE_LEDGER_LEN / 2, origin_y + STAVE_C_Y - cur * STAVE_SPACING_Y + (STAVE_GAP_Y / 2),
                 STAVE_LEDGER_LEN,
                 2);
         }

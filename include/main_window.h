@@ -17,6 +17,7 @@ typedef struct {
     GdkPixbuf *treble; // Treble clef stave image
     GdkPixbuf *bass; // Bass clef stave image
     GdkColor red;
+    GdkColor white;
 } main_window;
 
 void main_window_init(game *game, main_window *window);

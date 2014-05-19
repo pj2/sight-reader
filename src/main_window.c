@@ -4,6 +4,8 @@ Author: Joshua Prendergast */
 #include "main_window.h"
 #include "events.h"
 
+#define INT16_MAX 65535
+
 void main_window_init(game *game, main_window *window) {
     window->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     window->drawing_area = gtk_drawing_area_new();
@@ -26,6 +28,11 @@ void main_window_init(game *game, main_window *window) {
     gtk_box_pack_start(GTK_BOX(window->layout), window->status, FALSE, FALSE, 0);
 
     main_window_load_images(window);
+
+    /* Initialize colors */
+    window->red.red = INT16_MAX * 0.7;
+    window->red.green = window->red.blue = 0;
+    window->white.red = window->white.green = window->white.blue = INT16_MAX;
 }
 
 void main_window_load_images(main_window *window) {
