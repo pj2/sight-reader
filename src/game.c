@@ -3,7 +3,6 @@ Author: Joshua Prendergast */
 
 #include "game.h"
 #include "util.h"
-#include "events.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -18,17 +17,12 @@ void game_init(game *game) {
     game_next_note(game);
 }
 
-char *game_get_note_name(int note) {
-    static char *names[] = {"C", "D", "E", "F", "G", "A", "B"};
-    int index = abs(note) % 7;
-    if (note < 0)
-        index = 7 - index;
-
-    return names[index];
-}
-
 void game_next_note(game *game) {
-    game->note = (rand() % 18) - 3;
+    game->note.value = rand() % 18 - 3;
+
+    /* 1 in 10 chance of a modifier */
+    if ((game->note.modifiers = rand() % 11) > NOTE_MOD_FLAT)
+        game->note.modifiers = 0; 
 
     /* Toggle clef? */
     if (--game->next_clef_swap == 0) {
@@ -37,21 +31,25 @@ void game_next_note(game *game) {
     }
 
     if (game->clef == CLEF_BASS)
-        game->clef += 2;
+        game->note.value += 2;
 }
 
-void game_submit_answer(game *game, char *answer) {
-    static char text[50];
-    strupper(answer);
+void game_submit_answer(game *game, note *answer) {
+    char label[50];
+    char given[NOTE_NAME_MAX_LEN];
+    char expected[NOTE_NAME_MAX_LEN];
 
-    char *expected = game_get_note_name(game->note);
-    if (strcmp(answer, expected) == 0)
+    note_get_name(answer, given);
+    note_get_name(&game->note, expected);
+
+    if (note_equals_ignore_pitch(answer, &game->note))
         game->correct++;
     game->total++;
 
     game_next_note(game);
     gtk_widget_queue_draw(game->main_window.drawing_area);
 
-    snprintf(text, sizeof(text), "Note was '%s' | Score: %d of %d", expected, game->correct, game->total);
-    gtk_label_set_text(GTK_LABEL(game->main_window.status), text);
+    snprintf(label, sizeof(label), "given=%s, expected=%s | Score: %d of %d", given, expected, game->correct, game->total);
+    gtk_label_set_text(GTK_LABEL(game->main_window.status), label);
 }
+

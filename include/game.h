@@ -6,12 +6,10 @@ Author: Joshua Prendergast */
 
 #include <gtk/gtk.h>
 #include "main_window.h"
-
-#define CLEF_TREBLE 0
-#define CLEF_BASS 1
+#include "note.h"
 
 typedef struct game_s {
-    int note; // Current note; middle C is 0
+    note note;
     int correct; // Total correct
     int total; // Total answered
     int clef;
@@ -21,11 +19,9 @@ typedef struct game_s {
 
 void game_init(game *game);
 
-char *game_get_note_name(int note);
-
 void game_next_note(game *game);
 
-void game_submit_answer(game *game, char *answer);
+void game_submit_answer(game *game, note *answer);
 
 void game_load_images(game *game);
 
