@@ -17,16 +17,16 @@ typedef struct {
     GtkWidget *layout; 
     GdkPixbuf *stave; // Stave image
     GdkColor red;
-} State;
+} game;
 
-void game_init(State *state);
+void game_init(game *game);
 
 char *game_get_note_name(int note);
 
-void game_next_note(State *state);
+void game_next_note(game *game);
 
-void game_submit_answer(State *state, char *answer);
+void game_submit_answer(game *game, char *answer);
 
-void game_load_images(State *state);
+void game_load_images(game *game);
 
 #endif // GAME_H
