@@ -20,17 +20,24 @@ void game_init(game *game) {
 
 char *game_get_note_name(int note) {
     static char *names[] = {"C", "D", "E", "F", "G", "A", "B"};
-    return names[abs(note) % 7];
+    int index = abs(note) % 7;
+    if (note < 0)
+        index = 7 - index;
+
+    return names[index];
 }
 
 void game_next_note(game *game) {
-    game->note = 1 + (rand() % 14);
+    game->note = (rand() % 18) - 3;
 
     /* Toggle clef? */
     if (--game->next_clef_swap == 0) {
         game->next_clef_swap = 5 + (rand() % 10);
         game->clef = !game->clef;
     }
+
+    if (game->clef == CLEF_BASS)
+        game->clef += 2;
 }
 
 void game_submit_answer(game *game, char *answer) {

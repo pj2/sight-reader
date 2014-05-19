@@ -13,7 +13,7 @@ void main_window_init(game *game, main_window *window) {
 
     gtk_window_set_title(GTK_WINDOW(window->window), "sight-reader");
     gtk_window_set_position(GTK_WINDOW(window->window), GTK_WIN_POS_CENTER);
-    gtk_window_set_default_size(GTK_WINDOW(window->window), 250, 240);
+    gtk_window_set_default_size(GTK_WINDOW(window->window), 250, 350);
 
     /* Setup our signal handlers */
     g_signal_connect(G_OBJECT(window->drawing_area), "expose_event", G_CALLBACK(expose_event_callback), (gpointer) game);
