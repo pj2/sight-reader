@@ -5,18 +5,18 @@ Author: Joshua Prendergast */
 #define GAME_H
 
 #include <gtk/gtk.h>
+#include "main_window.h"
 
-typedef struct {
+#define CLEF_TREBLE 0
+#define CLEF_BASS 1
+
+typedef struct game_s {
     int note; // Current note; middle C is 0
-    int correct;
-    int total;
-    GtkWidget *window; // Game window
-    GtkWidget *drawing_area; // Image drawing area
-    GtkWidget *input; // Text field
-    GtkWidget *status;
-    GtkWidget *layout; 
-    GdkPixbuf *stave; // Stave image
-    GdkColor red;
+    int correct; // Total correct
+    int total; // Total answered
+    int clef;
+    int next_clef_swap; // Turns before the clef is next swapped
+    main_window main_window;
 } game;
 
 void game_init(game *game);

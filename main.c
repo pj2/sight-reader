@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     gtk_init(&argc, &argv);
     game_init(&game);
 
-    gtk_widget_show_all(game.window);
+    gtk_widget_show_all(game.main_window.window);
     gtk_main();
     return 0;
 }
