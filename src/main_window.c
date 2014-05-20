@@ -19,7 +19,7 @@ void main_window_init(game *game, main_window *window) {
 
     /* Setup our signal handlers */
     g_signal_connect(G_OBJECT(window->drawing_area), "expose_event", G_CALLBACK(main_window_stave_exposed), (gpointer) window);
-    g_signal_connect(G_OBJECT(window->window), "destroy", G_CALLBACK(gtk_main_quit), G_OBJECT(window->window));
+    g_signal_connect(G_OBJECT(window->window), "destroy", G_CALLBACK(game_destroy), (gpointer) game);
 
     gtk_container_add(GTK_CONTAINER(window->window), layout);
     gtk_box_pack_start(GTK_BOX(layout), window->drawing_area, TRUE, TRUE, 5);
@@ -34,54 +34,31 @@ void main_window_init(game *game, main_window *window) {
     window->black.red = window->black.green = window->black.blue = 0;
 }
 
+void main_window_destroy(main_window *window) {
+}
+
 GtkWidget *main_window_create_controls(main_window *window) {
     GtkWidget *vbox = gtk_vbox_new(FALSE, 0); /* Vertical layout; contains everything */
     GtkWidget *row1 = gtk_hbox_new(FALSE, 0); /* Horizontal layout for note buttons */
 
     /* Add note selection buttons */
-    GtkWidget *btn;
-    char label[NOTE_NAME_MAX_LEN];
-
-    note note;
-    note.modifiers = NOTE_MOD_NONE;
+    GtkWidget *cur_btn;
 
     int i;
-    for (i = 0; i < 7; i++) {
-        note.value = i;
-        note_get_name(&note, label);
-
-        btn = gtk_button_new_with_label(label);
+    for (i = 0; i < NOTE_MAX; i++) {
+        cur_btn = gtk_button_new();
+        window->btns[i] = cur_btn;
 
         window->control_data[i].value = i;
         window->control_data[i].window = window;
-        g_signal_connect(G_OBJECT(btn), "clicked", G_CALLBACK(main_window_note_clicked), (gpointer) &window->control_data[i]);
+        g_signal_connect(G_OBJECT(cur_btn), "clicked", G_CALLBACK(main_window_note_clicked), (gpointer) &window->control_data[i]);
 
-        gtk_box_pack_start(GTK_BOX(row1), btn, TRUE, TRUE, 1);
+        gtk_box_pack_start(GTK_BOX(row1), cur_btn, TRUE, TRUE, 1);
     }
-
-    /* Add modifier selection controls */
-    GtkWidget *row2 = gtk_hbox_new(TRUE, 0);
-    GtkWidget *radio[3];
-    radio[0] = gtk_radio_button_new_with_label(NULL, "Natural");
-    radio[1] = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio[0]), "Sharp");
-    radio[2] = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(radio[0]), "Flat");
-
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio[0]), TRUE);
-
-    /* Set up the signals... */
-    for (i = 0; i < 3; i++) {
-        window->control_data[i + 7].value = i;
-        window->control_data[i + 7].window = window;
-        g_signal_connect(G_OBJECT(radio[i]), "clicked", G_CALLBACK(main_window_modifier_clicked), (gpointer) &window->control_data[i + 7]);
-    }
-
-    gtk_box_pack_start(GTK_BOX(row2), radio[0], FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(row2), radio[1], FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(row2), radio[2], FALSE, FALSE, 0);
+    main_window_relabel_notes(window);
 
     /* Add rows */
     gtk_box_pack_start(GTK_BOX(vbox), row1, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(vbox), row2, FALSE, FALSE, 0);
 
     /* Finally, add status line */
     window->status = gtk_label_new("Name the note on the stave");
@@ -91,24 +68,36 @@ GtkWidget *main_window_create_controls(main_window *window) {
 }
 
 void main_window_load_images(main_window *window) {
+    /* TODO error handling */
     GError *err = NULL;
-    if (!(window->treble = gdk_pixbuf_new_from_file("images/treble.png", &err)) ||
-        !(window->bass   = gdk_pixbuf_new_from_file("images/bass.png"  , &err)) ||
-        !(window->sharp  = gdk_pixbuf_new_from_file("images/sharp.png" , &err)) ||
-        !(window->flat   = gdk_pixbuf_new_from_file("images/flat.png"  , &err))) {
-        printf("%s\n", err->message);
+    window->pixbufs[PIXBUF_TREBLE] = gdk_pixbuf_new_from_file("images/treble.png", &err);
+    window->pixbufs[PIXBUF_BASS]   = gdk_pixbuf_new_from_file("images/bass.png"  , &err);
+    window->pixbufs[PIXBUF_SHARP]  = gdk_pixbuf_new_from_file("images/sharp.png" , &err);
+    window->pixbufs[PIXBUF_FLAT]   = gdk_pixbuf_new_from_file("images/flat.png"  , &err);
+}
+
+void main_window_relabel_notes(main_window *window) {
+    char label[NOTE_NAME_MAX_LEN];
+    note note;
+    note.modifiers = window->selected_modifier;
+
+    int i;
+    for (i = 0; i < NOTE_MAX; i++) {
+        note.value = i;
+        note_get_name(&note, label);
+
+        gtk_button_set_label(GTK_BUTTON(window->btns[i]), label);
     }
+}
+
+void main_window_set_selected_modifier(main_window *window, int selected_modifier) {
+    window->selected_modifier = selected_modifier;
+    main_window_relabel_notes(window);
 }
 
 /*
  * Signal handlers 
  */
-
-void main_window_modifier_clicked(GtkWidget *widget, gpointer data) {
-    /* Update the selected modifier. This struct passing seems convoluted, but I can't think of a better alternative right now */
-    control_data *cd = ((control_data *) data);
-    cd->window->selected_modifier = cd->value;
-}
 
 void main_window_note_clicked(GtkWidget *widget, gpointer data) {
     control_data *cd = ((control_data *) data);
@@ -116,6 +105,8 @@ void main_window_note_clicked(GtkWidget *widget, gpointer data) {
     /* Submit the answer */
     note user_answer = { .value = cd->value, .modifiers = cd->window->selected_modifier };
     game_submit_answer(cd->window->game, &user_answer);
+
+    main_window_relabel_notes(cd->window);
 }
 
 gboolean main_window_stave_exposed(GtkWidget *widget, GdkEventExpose *event, gpointer data) {
@@ -123,8 +114,11 @@ gboolean main_window_stave_exposed(GtkWidget *widget, GdkEventExpose *event, gpo
     GdkGC *gc = widget->style->fg_gc[gtk_widget_get_state(widget)];
 
     int treble = g->clef == CLEF_TREBLE;
-    GdkPixbuf *buf = treble ? g->main_window.treble : g->main_window.bass; /* The stave image; treble or bass */
-    int origin_y = event->area.height / 2 - gdk_pixbuf_get_height(buf) / 2; /* Used for centering - apply to all drawing operations */
+    GdkPixbuf *buf = treble ? g->main_window.pixbufs[PIXBUF_TREBLE] : g->main_window.pixbufs[PIXBUF_BASS]; /* The stave image; treble or bass */
+
+    /* Used for centering - apply to all drawing operations */
+    int origin_x = event->area.width / 2 - gdk_pixbuf_get_width(buf) / 2;
+    int origin_y = event->area.height / 2 - gdk_pixbuf_get_height(buf) / 2;
 
     /* Draw a white background */
     gdk_gc_set_rgb_fg_color(gc, &g->main_window.white);
@@ -141,61 +135,76 @@ gboolean main_window_stave_exposed(GtkWidget *widget, GdkEventExpose *event, gpo
             GDK_DRAWABLE(widget->window),
             gc,
             0, 0,
-            event->area.x, origin_y,
+            origin_x, origin_y,
             -1, -1,
             GDK_RGB_DITHER_MAX, 0, 0);
 
-    note *current_note = &g->note;
-    int render_pos = treble ? current_note->value : current_note->value - 2; /* The line to draw the note on */
+    int i;
+    for (i = 0; i < NOTES_PER_BAR; i++) {
+        note *drawn = &g->notes[i];
+        int render_pos = treble ? drawn->value : drawn->value - 2; /* The line to draw the note on */
 
-    int note_x = STAVE_NOTE_X;
-    int note_y = origin_y + STAVE_C_Y - render_pos * STAVE_SPACING_Y;
+        int note_x = origin_x + STAVE_NOTE_X + 75 * i;
+        int note_y = origin_y + STAVE_C_Y - render_pos * STAVE_SPACING_Y;
 
-    /* Draw the current note in red */
-    gdk_gc_set_rgb_fg_color(gc, &g->main_window.red);
-    gdk_draw_arc(widget->window,
-            gc,
-            TRUE,
-            note_x, note_y,
-            STAVE_GAP_Y, STAVE_GAP_Y,
-            0, 360 * 64);
+        if (g->current_note == i)
+            gdk_gc_set_rgb_fg_color(gc, &g->main_window.red);
+        else
+            gdk_gc_set_rgb_fg_color(gc, &g->main_window.black);
 
-    /* Draw accidental */
-    int flat = (current_note->modifiers & NOTE_MOD_FLAT) == NOTE_MOD_FLAT;
-    int sharp = (current_note->modifiers & NOTE_MOD_SHARP) == NOTE_MOD_SHARP;
-    if (flat || sharp) {
-        gdk_pixbuf_render_to_drawable(sharp ? g->main_window.sharp : g->main_window.flat,
-                GDK_DRAWABLE(widget->window),
-                gc,
-                0, 0,
-                note_x + 10, note_y - 5,
-                -1, -1,
-                GDK_RGB_DITHER_MAX, 0, 0);
-    }
-
-    /* Draw ledger lines */
-    gdk_gc_set_rgb_fg_color(gc, &g->main_window.black);
-    int below = render_pos <= 0;
-    int above = render_pos >= 12;
-
-    if (below || above) {
-        /* Calculate the amount of ledger lines to draw and the direction to draw them in. */
-        int cur;
-        int start = below ? 0 : 12; /* Start position */
-        int dir = below ? -2 : 2;
-        int end = current_note->value + dir / 2; /* Last line which might have a ledger (if it's even) */
-
-        if (!treble)
-            end += dir;
-
-        for (cur = start; below ? cur >= end : cur <= end; cur += dir) {
-            gdk_draw_rectangle(
-                GDK_DRAWABLE(widget->window),
+        /* Draw the current note */
+        gdk_draw_arc(widget->window,
                 gc,
                 TRUE,
-                STAVE_NOTE_X + STAVE_GAP_Y / 2 - STAVE_LEDGER_LEN / 2, origin_y + STAVE_C_Y - cur * STAVE_SPACING_Y + (STAVE_GAP_Y / 2),
-                STAVE_LEDGER_LEN,
-                2);
+                note_x, note_y,
+                STAVE_GAP_Y, STAVE_GAP_Y,
+                0, 360 * 64);
+
+        /* Draw accidental */
+        int flat = (drawn->modifiers & NOTE_MOD_FLAT) == NOTE_MOD_FLAT;
+        int sharp = (drawn->modifiers & NOTE_MOD_SHARP) == NOTE_MOD_SHARP;
+        if (flat || sharp) {
+            gdk_pixbuf_render_to_drawable(sharp ? g->main_window.pixbufs[PIXBUF_SHARP] : g->main_window.pixbufs[PIXBUF_FLAT],
+                    GDK_DRAWABLE(widget->window),
+                    gc,
+                    0, 0,
+                    note_x - 13, note_y - 2,
+                    -1, -1,
+                    GDK_RGB_DITHER_MAX, 0, 0);
+        }
+
+        /* Draw ledger lines */
+        gdk_gc_set_rgb_fg_color(gc, &g->main_window.black);
+        int below = render_pos <= 0;
+        int above = render_pos >= 12;
+
+        if (below || above) {
+            /* Calculate the amount of ledger lines to draw and the direction to draw them in. */
+            int cur_line;
+            int start = below ? 0 : 12; /* Start position */
+            int dir = below ? -2 : 2;
+            int end = drawn->value + dir / 2; /* Last line which might have a ledger (if it's even) */
+
+            if (!treble)
+                end += dir;
+
+            for (cur_line = start; below ? cur_line >= end : cur_line <= end; cur_line += dir) {
+                gdk_draw_rectangle(
+                    GDK_DRAWABLE(widget->window),
+                    gc,
+                    TRUE,
+                    note_x + STAVE_GAP_Y / 2 - STAVE_LEDGER_LEN / 2, origin_y + STAVE_C_Y - cur_line * STAVE_SPACING_Y + (STAVE_GAP_Y / 2),
+                    STAVE_LEDGER_LEN,
+                    2);
+            }
+        }
+
+        /* Draw note names */
+        char label[NOTE_NAME_MAX_LEN];
+        note_get_name(drawn, label);
+
+        if (i < g->current_note) {
+            /* Draw label */
         }
     }
 

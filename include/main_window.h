@@ -13,6 +13,12 @@ Author: Joshua Prendergast */
 #define STAVE_GAP_Y 21
 #define STAVE_LEDGER_LEN 35
 
+#define PIXBUF_COUNT 4
+#define PIXBUF_TREBLE 0
+#define PIXBUF_BASS 1
+#define PIXBUF_SHARP 2
+#define PIXBUF_FLAT 3
+
 typedef struct game_s game;
 typedef struct main_window_s main_window;
 
@@ -27,26 +33,28 @@ typedef struct main_window_s {
     GtkWidget *drawing_area; // Image drawing area
     GtkWidget *input; // Text field
     GtkWidget *status;
-    GdkPixbuf *treble; // Treble clef stave image
-    GdkPixbuf *bass; // Bass clef stave image
-    GdkPixbuf *sharp;
-    GdkPixbuf *flat;
+    GdkPixbuf *pixbufs[PIXBUF_COUNT];
+    GtkWidget *btns[NOTE_MAX];
     GdkColor red;
     GdkColor white;
     GdkColor black;
     int selected_modifier;
-    control_data control_data[10];
+    control_data control_data[3];
 } main_window;
 
 #include "game.h"
 
 void main_window_init(game *game, main_window *window);
 
+void main_window_destroy(main_window *window);
+
 GtkWidget *main_window_create_controls(main_window *window);
 
 void main_window_load_images(main_window *window);
 
-void main_window_modifier_clicked(GtkWidget *widget, gpointer data);
+void main_window_set_selected_modifier(main_window *window, int selected_modifier);
+
+void main_window_relabel_notes(main_window *window);
 
 void main_window_note_clicked(GtkWidget *widget, gpointer data);
 

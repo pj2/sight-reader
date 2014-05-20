@@ -8,8 +8,11 @@ Author: Joshua Prendergast */
 #include "main_window.h"
 #include "note.h"
 
+#define NOTES_PER_BAR 4
+
 typedef struct game_s {
-    note note;
+    note notes[NOTES_PER_BAR];
+    int current_note;
     int correct; // Total correct
     int total; // Total answered
     int clef;
@@ -19,7 +22,11 @@ typedef struct game_s {
 
 void game_init(game *game);
 
-void game_next_note(game *game);
+void game_destroy(game *game);
+
+void game_next_note(game *game, note *note);
+
+void game_next_bar(game *game);
 
 void game_submit_answer(game *game, note *answer);
 
