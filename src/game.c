@@ -11,7 +11,7 @@ void game_init(game *game) {
 
     game->correct = game->total = 0;
     game->clef = CLEF_TREBLE;
-    game->next_clef_swap = 5 + rand() % 15;
+    game->next_clef_swap = 2 + rand() % 5;
     game->current_note = 0;
 
     srand(time(NULL));

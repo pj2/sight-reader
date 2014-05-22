@@ -32,6 +32,9 @@ void main_window_init(game *game, main_window *window) {
     window->red.green = window->red.blue = 0;
     window->white.red = window->white.green = window->white.blue = INT16_MAX;
     window->black.red = window->black.green = window->black.blue = 0;
+    window->gray.red = window->gray.green = window->gray.blue = INT16_MAX * 0.10;
+
+    window->selected_modifier = NOTE_MOD_NONE;
 }
 
 void main_window_destroy(main_window *window) {
@@ -120,8 +123,8 @@ gboolean main_window_stave_exposed(GtkWidget *widget, GdkEventExpose *event, gpo
     int origin_x = event->area.width / 2 - gdk_pixbuf_get_width(buf) / 2;
     int origin_y = event->area.height / 2 - gdk_pixbuf_get_height(buf) / 2;
 
-    /* Draw a white background */
-    gdk_gc_set_rgb_fg_color(gc, &g->main_window.white);
+    /* Draw a dark gray background */
+    gdk_gc_set_rgb_fg_color(gc, &g->main_window.gray);
     gdk_draw_rectangle(GDK_DRAWABLE(widget->window),
             gc,
             TRUE,
@@ -183,10 +186,10 @@ gboolean main_window_stave_exposed(GtkWidget *widget, GdkEventExpose *event, gpo
             int cur_line;
             int start = below ? 0 : 12; /* Start position */
             int dir = below ? -2 : 2;
-            int end = drawn->value + dir / 2; /* Last line which might have a ledger (if it's even) */
+            int end = drawn->value; /* Last line which might have a ledger (if it's even) */
 
             if (!treble)
-                end += dir;
+                end -= 2;
 
             for (cur_line = start; below ? cur_line >= end : cur_line <= end; cur_line += dir) {
                 gdk_draw_rectangle(
@@ -195,7 +198,7 @@ gboolean main_window_stave_exposed(GtkWidget *widget, GdkEventExpose *event, gpo
                     TRUE,
                     note_x + STAVE_GAP_Y / 2 - STAVE_LEDGER_LEN / 2, origin_y + STAVE_C_Y - cur_line * STAVE_SPACING_Y + (STAVE_GAP_Y / 2),
                     STAVE_LEDGER_LEN,
-                    2);
+                    4);
             }
         }
 

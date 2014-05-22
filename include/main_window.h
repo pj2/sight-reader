@@ -7,7 +7,7 @@ Author: Joshua Prendergast */
 #include <gtk/gtk.h>
 #include "note.h"
 
-#define STAVE_C_Y 162
+#define STAVE_C_Y 210
 #define STAVE_SPACING_Y 12
 #define STAVE_NOTE_X 125
 #define STAVE_GAP_Y 21
@@ -38,6 +38,7 @@ typedef struct main_window_s {
     GdkColor red;
     GdkColor white;
     GdkColor black;
+    GdkColor gray;
     int selected_modifier;
     control_data control_data[3];
 } main_window;
